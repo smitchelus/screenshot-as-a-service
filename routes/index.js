@@ -18,7 +18,8 @@ module.exports = function(app, useCors) {
     // required options
     var options = {
       uri: 'http://localhost:' + rasterizerService.getPort() + '/',
-      headers: { url: url }
+      headers: { url: url },
+      timeout: 50000
     };
     ['width', 'height', 'clipRect', 'javascriptEnabled', 'loadImages', 'localToRemoteUrlAccessEnabled', 'userAgent', 'userName', 'password', 'delay'].forEach(function(name) {
       if (req.param(name, false)) options.headers[name] = req.param(name);
@@ -76,7 +77,10 @@ module.exports = function(app, useCors) {
 
   var callRasterizer = function(rasterizerOptions, callback) {
     request.get(rasterizerOptions, function(error, response, body) {
-      if (error || response.statusCode != 200) {
+      if (error && error.message == "connect ECONNREFUSED") {
+        console.log('phantomjs is not ready yet. Message was: %s', error.message);
+        return callback(new Error(body));
+      } else if (error || response.statusCode != 200) {
         console.log('Error while requesting the rasterizer: %s', error.message);
         rasterizerService.restartService();
         return callback(new Error(body));
